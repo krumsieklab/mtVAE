@@ -4,7 +4,7 @@ The repository contains scripts to replicate findings in the paper **Gomari et a
 
 <br>
 
-### Requirments:
+### Requirements:
 
 - [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/download.html)
 - [R version >= 4.0.0](https://www.r-project.org/)
