@@ -11,6 +11,8 @@ from keras import backend as K
 
 from scipy import linalg as LA
 import numpy as np
+import pandas as pd
+from sklearn.decomposition import KernelPCA
 
 def PCA(data):
     
@@ -37,15 +39,15 @@ def PCA(data):
     loadings = S * np.sqrt(evals)
     
     return([A, S, loadings])
-      
+
     
-    
+
 class PCA_model:
     
-    def __init__(self, referece_data, k):
-        self.referece_data = referece_data
+    def __init__(self, reference_data, k):
+        self.reference_data = reference_data
         self.k = k
-        self.A, self.S, self.loadings = PCA(self.referece_data)
+        self.A, self.S, self.loadings = PCA(self.reference_data)
     
     def encode(self, target_data):
 
@@ -67,11 +69,51 @@ class PCA_model:
     def get_loadings(self):
         
         return(self.loadings[:,:self.k])
+
+
+
+def KPCA(data, k, kernel, alpha, gamma, coef0, degree):
+
+    data_raw = data
     
+    #centering the data
+    data -= np.mean(data, axis = 0)  
+
+    kPCA = KernelPCA(n_components = k, kernel=kernel, alpha=alpha, gamma=gamma, coef0=coef0, degree=degree, fit_inverse_transform=True)
+
+    kPCA.fit(data)
+    
+    return kPCA
+
+
+class KPCA_model:
+    
+    def __init__(self, reference_data, k, kernel, alpha, gamma, coef0, degree):
+        self.reference_data = reference_data
+        self.k = k
+        self.kernel= kernel
+        self.alpha = alpha
+        self.gamma = gamma
+        self.coef0 = coef0 
+        self.degree = degree
+        self.model = KPCA(self.reference_data, self.k, self.kernel, self.alpha, self.gamma, self.coef0, self.degree)
+    
+    def encode(self, target_data):
+
+        # KPCA transform target_data
+        A2 = self.model.transform(target_data) 
+
+        return(A2)
+    
+    def reconstruct(self, target_data):
+
+        encoded = self.encode(target_data)
+
+        return self.model.inverse_transform(encoded)
 
 
 # Define sampling with reparameterization trick
-        
+
 class mtVAE():
 
     def __init__(self,
