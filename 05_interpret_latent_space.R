@@ -208,6 +208,291 @@ pca_sage_superpw <-
   column_to_rownames("pathway_name")%>% 
   relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
 
+# Load cosine KPCA SAGE scores -----------------------------------------------------
+
+cosine_sage_scores <- 
+  list.files("results/sage_values/cosine", full.names = TRUE) %>% 
+  lapply(function(fn) read_csv(fn) %>% dplyr::mutate(file = fn)) %>% 
+  bind_rows() %>% 
+  dplyr::mutate(dim = str_extract(file, "dim_[0-9]+"),
+                sage_type = str_extract(file, "met|sub|super")) 
+
+# metabolites
+cosine_met_sage_df <- 
+  cosine_sage_scores %>% 
+  filter(sage_type == "met") %>% 
+  dplyr::select(-c(pathway_name, file, sage_type)) %>% 
+  distinct() 
+
+cosine_met_sage_wide <- 
+  cosine_met_sage_df %>% 
+  dplyr::select(-sage_value_sd) %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  left_join(aml_lookup, by = c("metabolite_id" = "COMP_IDstr")) %>% 
+  # for visualization purposes, sort by metabolite with highest
+  # absolute mean values
+  dplyr::mutate(met_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(met_mean) %>% 
+  dplyr::select(-met_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+# Sub-pathways
+cosine_sage_subpw_df <- 
+  cosine_sage_scores %>% 
+  filter(sage_type == "sub") %>% 
+  left_join(aml_lookup %>% distinct(SUB_PATHWAY, SUPER_PATHWAY), 
+            by = c("pathway_name" = "SUB_PATHWAY")) 
+
+
+cosine_sage_subpw_wide <- 
+  cosine_sage_subpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  dplyr::mutate(pw_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(pw_mean) %>% 
+  dplyr::select(-pw_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+cosine_sage_subpw <- 
+  cosine_sage_subpw_wide %>% 
+  dplyr::select(-SUPER_PATHWAY) %>% 
+  column_to_rownames("pathway_name")
+
+
+# Super-pathways
+cosine_sage_superpw_df <- 
+  cosine_sage_scores %>% 
+  filter(sage_type == "super")
+
+cosine_sage_superpw <- 
+  cosine_sage_superpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  column_to_rownames("pathway_name")%>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+# Load sigmoid SAGE scores -----------------------------------------------------
+
+sigmoid_sage_scores <- 
+  list.files("results/sage_values/sigmoid", full.names = TRUE) %>% 
+  lapply(function(fn) read_csv(fn) %>% dplyr::mutate(file = fn)) %>% 
+  bind_rows() %>% 
+  dplyr::mutate(dim = str_extract(file, "dim_[0-9]+"),
+                sage_type = str_extract(file, "met|sub|super")) 
+
+# metabolites
+sigmoid_met_sage_df <- 
+  sigmoid_sage_scores %>% 
+  filter(sage_type == "met") %>% 
+  dplyr::select(-c(pathway_name, file, sage_type)) %>% 
+  distinct() 
+
+sigmoid_met_sage_wide <- 
+  sigmoid_met_sage_df %>% 
+  dplyr::select(-sage_value_sd) %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  left_join(aml_lookup, by = c("metabolite_id" = "COMP_IDstr")) %>% 
+  # for visualization purposes, sort by metabolite with highest
+  # absolute mean values
+  dplyr::mutate(met_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(met_mean) %>% 
+  dplyr::select(-met_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+# Sub-pathways
+sigmoid_sage_subpw_df <- 
+  sigmoid_sage_scores %>% 
+  filter(sage_type == "sub") %>% 
+  left_join(aml_lookup %>% distinct(SUB_PATHWAY, SUPER_PATHWAY), 
+            by = c("pathway_name" = "SUB_PATHWAY")) 
+
+
+sigmoid_sage_subpw_wide <- 
+  sigmoid_sage_subpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  dplyr::mutate(pw_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(pw_mean) %>% 
+  dplyr::select(-pw_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+sigmoid_sage_subpw <- 
+  sigmoid_sage_subpw_wide %>% 
+  dplyr::select(-SUPER_PATHWAY) %>% 
+  column_to_rownames("pathway_name")
+
+
+# Super-pathways
+sigmoid_sage_superpw_df <- 
+  sigmoid_sage_scores %>% 
+  filter(sage_type == "super")
+
+sigmoid_sage_superpw <- 
+  sigmoid_sage_superpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  column_to_rownames("pathway_name")%>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+
+# Load rbf SAGE scores -----------------------------------------------------
+
+rbf_sage_scores <- 
+  list.files("results/sage_values/rbf", full.names = TRUE) %>% 
+  lapply(function(fn) read_csv(fn) %>% dplyr::mutate(file = fn)) %>% 
+  bind_rows() %>% 
+  dplyr::mutate(dim = str_extract(file, "dim_[0-9]+"),
+                sage_type = str_extract(file, "met|sub|super")) 
+
+# metabolites
+rbf_met_sage_df <- 
+  rbf_sage_scores %>% 
+  filter(sage_type == "met") %>% 
+  dplyr::select(-c(pathway_name, file, sage_type)) %>% 
+  distinct() 
+
+rbf_met_sage_wide <- 
+  rbf_met_sage_df %>% 
+  dplyr::select(-sage_value_sd) %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  left_join(aml_lookup, by = c("metabolite_id" = "COMP_IDstr")) %>% 
+  # for visualization purposes, sort by metabolite with highest
+  # absolute mean values
+  dplyr::mutate(met_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(met_mean) %>% 
+  dplyr::select(-met_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+# Sub-pathways
+rbf_sage_subpw_df <- 
+  rbf_sage_scores %>% 
+  filter(sage_type == "sub") %>% 
+  left_join(aml_lookup %>% distinct(SUB_PATHWAY, SUPER_PATHWAY), 
+            by = c("pathway_name" = "SUB_PATHWAY")) 
+
+
+rbf_sage_subpw_wide <- 
+  rbf_sage_subpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  dplyr::mutate(pw_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(pw_mean) %>% 
+  dplyr::select(-pw_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+rbf_sage_subpw <- 
+  rbf_sage_subpw_wide %>% 
+  dplyr::select(-SUPER_PATHWAY) %>% 
+  column_to_rownames("pathway_name")
+
+
+# Super-pathways
+rbf_sage_superpw_df <- 
+  rbf_sage_scores %>% 
+  filter(sage_type == "super")
+
+rbf_sage_superpw <- 
+  rbf_sage_superpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  column_to_rownames("pathway_name")%>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+# Load poly SAGE scores -----------------------------------------------------
+
+poly_sage_scores <- 
+  list.files("results/sage_values/poly", full.names = TRUE) %>% 
+  lapply(function(fn) read_csv(fn) %>% dplyr::mutate(file = fn)) %>% 
+  bind_rows() %>% 
+  dplyr::mutate(dim = str_extract(file, "dim_[0-9]+"),
+                sage_type = str_extract(file, "met|sub|super")) 
+
+# metabolites
+poly_met_sage_df <- 
+  poly_sage_scores %>% 
+  filter(sage_type == "met") %>% 
+  dplyr::select(-c(pathway_name, file, sage_type)) %>% 
+  distinct() 
+
+poly_met_sage_wide <- 
+  poly_met_sage_df %>% 
+  dplyr::select(-sage_value_sd) %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  left_join(aml_lookup, by = c("metabolite_id" = "COMP_IDstr")) %>% 
+  # for visualization purposes, sort by metabolite with highest
+  # absolute mean values
+  dplyr::mutate(met_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(met_mean) %>% 
+  dplyr::select(-met_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+# Sub-pathways
+poly_sage_subpw_df <- 
+  poly_sage_scores %>% 
+  filter(sage_type == "sub") %>% 
+  left_join(aml_lookup %>% distinct(SUB_PATHWAY, SUPER_PATHWAY), 
+            by = c("pathway_name" = "SUB_PATHWAY")) 
+
+
+poly_sage_subpw_wide <- 
+  poly_sage_subpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  dplyr::mutate(pw_mean = rowMeans(abs(select(., starts_with("dim"))))) %>% 
+  group_by(SUPER_PATHWAY) %>% 
+  dplyr::arrange(pw_mean) %>% 
+  dplyr::select(-pw_mean) %>% 
+  ungroup() %>% 
+  dplyr::arrange(SUPER_PATHWAY) %>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
+poly_sage_subpw <- 
+  poly_sage_subpw_wide %>% 
+  dplyr::select(-SUPER_PATHWAY) %>% 
+  column_to_rownames("pathway_name")
+
+
+# Super-pathways
+poly_sage_superpw_df <- 
+  poly_sage_scores %>% 
+  filter(sage_type == "super")
+
+poly_sage_superpw <- 
+  poly_sage_superpw_df %>% 
+  dplyr::select(-c(metabolite_id, file, sage_type, sage_value_sd)) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = dim, values_from = sage_value) %>% 
+  column_to_rownames("pathway_name")%>% 
+  relocate(lapply(1:18, function(dm) str_c("dim_",dm)) %>% unlist())
+
 
 
 # Create heatmaps -----------------------------------------------------
@@ -289,13 +574,83 @@ pca_subpw_pw_normed <-
   as.data.frame() %>% 
   plot_subpw(., max(.))
 
+colnames(cosine_sage_subpw) <- 1:18
 
+# cosine sub-pathway SAGE dimension-normalized
+cosine_subpw_dim_normed <- 
+  cosine_sage_subpw %>%
+  scale(center = FALSE) %>%
+  plot_subpw(., max(.))
+
+# cosine sub-pathway SAGE subpathway-normalized
+cosine_subpw_pw_normed <- 
+  cosine_sage_subpw %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  scale(center = FALSE) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  plot_subpw(., max(.))
+
+colnames(sigmoid_sage_subpw) <- 1:18
+
+# sigmoid sub-pathway SAGE dimension-normalized
+sigmoid_subpw_dim_normed <- 
+  sigmoid_sage_subpw %>%
+  scale(center = FALSE) %>%
+  plot_subpw(., max(.))
+
+# sigmoid sub-pathway SAGE subpathway-normalized
+sigmoid_subpw_pw_normed <- 
+  sigmoid_sage_subpw %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  scale(center = FALSE) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  plot_subpw(., max(.))
+
+colnames(rbf_sage_subpw) <- 1:18
+
+# rbf sub-pathway SAGE dimension-normalized
+rbf_subpw_dim_normed <- 
+  rbf_sage_subpw %>%
+  scale(center = FALSE) %>%
+  plot_subpw(., max(.))
+
+# rbf sub-pathway SAGE subpathway-normalized
+rbf_subpw_pw_normed <- 
+  rbf_sage_subpw %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  scale(center = FALSE) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  plot_subpw(., max(.))
+
+colnames(poly_sage_subpw) <- 1:18
+
+# poly sub-pathway SAGE dimension-normalized
+poly_subpw_dim_normed <- 
+  poly_sage_subpw %>%
+  scale(center = FALSE) %>%
+  plot_subpw(., max(.))
+
+# poly sub-pathway SAGE subpathway-normalized
+poly_subpw_pw_normed <- 
+  poly_sage_subpw %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  scale(center = FALSE) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  plot_subpw(., max(.))
 
 # Create alluvial plots for specific dimensions --------------------------------------
 
 
 vae_alluvial <- 
-  c("dim_9", "dim_11", "dim_15") %>% 
+  c("dim_12", "dim_11") %>% 
   sapply(function(dim) {
     get_alluvial_plots(dim, 
                        sage_met_wide, 
@@ -343,6 +698,30 @@ plot.new()
 pca_subpw_dim_normed
 plot.new()
 pca_subpw_pw_normed
+
+# cosine
+plot.new()
+cosine_subpw_dim_normed
+plot.new()
+cosine_subpw_pw_normed
+
+#sigmoid
+plot.new()
+sigmoid_subpw_dim_normed
+plot.new()
+sigmoid_subpw_pw_normed
+
+#rbf
+plot.new()
+rbf_subpw_dim_normed
+plot.new()
+rbf_subpw_pw_normed
+
+#poly
+plot.new()
+poly_subpw_dim_normed
+plot.new()
+poly_subpw_pw_normed
 
 # Alluvial plots
 vae_alluvial
