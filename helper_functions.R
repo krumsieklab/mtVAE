@@ -78,15 +78,74 @@ get_bootstrap_scores <- function(recon_vae, recon_pca, ref_data, n_times = 100, 
         dplyr::mutate(seed = bs_idx)
     }, 
     mc.preschedule = TRUE, 
-    mc.cores = 5, 
+    mc.cores = n_cores, 
     mc.cleanup = TRUE) %>% 
     bind_rows()
   
 }
 
-get_mse_plot <- function(data_name, title) {
+get_bootstrap_scores_kpca <- function(poly, cosine, sigmoid, rbf, ref_data, n_times = 100, n_cores = 2) {
   
-  all_metrics_processed %>% 
+  # converting to data.table makes all subsequent calculations faster
+  recon_poly <- data.table(poly)
+  recon_cosine <- data.table(cosine)
+  recon_sigmoid <- data.table(sigmoid)
+  recon_rbf <- data.table(rbf)
+  ref_data  <- data.table(ref_data)
+  
+  1:n_times %>% 
+    mclapply(function(bs_idx) {
+      set.seed(bs_idx)
+      if (bs_idx %% 100 == 0) print(glue("Working on index {bs_idx}"))
+      sample_idxs <- nrow(ref_data) %>% sample(replace = TRUE)
+      
+      ref_rand <- ref_data[sample_idxs, ]
+      poly_rand <- recon_poly[sample_idxs, ]
+      cosine_rand <- recon_cosine[sample_idxs, ]
+      sigmoid_rand <- recon_sigmoid[sample_idxs, ]
+      rbf_rand <- recon_rbf[sample_idxs, ]
+      
+      poly_cor <- cor(poly_rand) 
+      cosine_cor <- cor(cosine_rand) 
+      sigmoid_cor <- cor(sigmoid_rand)
+      rbf_cor <- cor(rbf_rand)
+      ref_cor <- cor(ref_rand)
+      
+      # Calculate MSE between the reconstructed correlation matrix and reference
+      # data. Calculate this on the upper triangular matrix
+      poly_cor_ut <- poly_cor[upper.tri(poly_cor, diag = FALSE)]
+      cosine_cor_ut <- cosine_cor[upper.tri(cosine_cor, diag = FALSE)]
+      sigmoid_cor_ut <- sigmoid_cor[upper.tri(sigmoid_cor, diag = FALSE)]
+      rbf_cor_ut <- rbf_cor[upper.tri(rbf_cor, diag = FALSE)]
+      
+      ref_cor_ut <- ref_cor[upper.tri(ref_cor, diag = FALSE)]
+      
+      poly_cormat_mse <- (poly_cor_ut - ref_cor_ut)^2 %>% mean()
+      cosine_cormat_mse <- (cosine_cor_ut - ref_cor_ut)^2 %>% mean()
+      sigmoid_cormat_mse <- (sigmoid_cor_ut - ref_cor_ut)^2 %>% mean()
+      rbf_cormat_mse <- (rbf_cor_ut - ref_cor_ut)^2 %>% mean()
+      
+      poly_mse <- (poly_rand - ref_rand)^2 %>% unlist() %>% mean()
+      cosine_mse <- (cosine_rand - ref_rand)^2 %>% unlist() %>% mean()
+      sigmoid_mse <- (sigmoid_rand - ref_rand)^2 %>% unlist() %>% mean()
+      rbf_mse <- (rbf_rand - ref_rand)^2 %>% unlist() %>% mean()
+      
+      tibble(model = c("Poly", "Cosine", "Sigmoid", "RBF"),
+             mse_cormat = c(poly_cormat_mse, cosine_cormat_mse, sigmoid_cormat_mse, rbf_cormat_mse),
+             mse        = c(poly_mse, cosine_mse, sigmoid_mse, rbf_mse)) %>% 
+        dplyr::mutate(seed = bs_idx)
+    }, 
+    mc.preschedule = TRUE, 
+    mc.cores = n_cores, 
+    mc.cleanup = TRUE) %>% 
+    bind_rows()
+  
+}
+
+
+get_mse_plot <- function(data_name, title, metrics_processed, num_models) {
+  
+  metrics_processed %>% 
     filter(d_dim == 18,
            label == "MSE",
            data == data_name) %>% 
@@ -103,7 +162,7 @@ get_mse_plot <- function(data_name, title) {
           strip.text.x = element_blank(),
           strip.text.y = element_blank(),
           panel.spacing = unit(1, "lines")) +
-    scale_color_manual(values=wes_palette(n=2, name="BottleRocket1")) +
+    scale_color_manual(values=wes_palette(num_models, name = "Zissou1", type = "continuous")) +
     ggtitle(title)
   
 }
@@ -123,18 +182,16 @@ subpw_counts <-
   filter(COMP_IDstr %in% aml_mets) %>% 
   dplyr::count(pathway_name = SUB_PATHWAY)
 
-superpw_counts <- 
-  aml_lookup %>% 
-  filter(COMP_IDstr %in% aml_mets) %>% 
-  dplyr::count(pathway_name = SUPER_PATHWAY) %>% 
-  arrange()
+superpw_counts <-
+  aml_lookup %>%
+  filter(COMP_IDstr %in% aml_mets) %>%
+  dplyr::count(pathway_name = SUPER_PATHWAY)
 
-superpw_sub_counts <- 
-  aml_lookup %>% 
-  filter(COMP_IDstr %in% aml_mets) %>% 
-  dplyr::distinct(SUB_PATHWAY, SUPER_PATHWAY) %>% 
-  dplyr::count(pathway_name = SUPER_PATHWAY) %>% 
-  arrange()
+superpw_sub_counts <-
+  aml_lookup %>%
+  filter(COMP_IDstr %in% aml_mets) %>%
+  dplyr::distinct(SUB_PATHWAY, SUPER_PATHWAY) %>%
+  dplyr::count(pathway_name = SUPER_PATHWAY) 
 
 
 plot_superpw <- function(df) {
@@ -311,15 +368,15 @@ get_latent_scores <- function(df) {
 }
 
 
-get_rank_plot <- function(df, title) {
+get_rank_plot <- function(df, title, num_models) {
   
   df %>% 
     dplyr::arrange(pval_nominal) %>% 
-    mutate(rank = row_number()) %>% 
+    dplyr::mutate(rank = row_number()) %>% 
     ggplot() + 
     geom_point(aes(x = rank, y = -log10(pval_nominal), color = model), size = 1.3) +
     ggtitle(title) +
-    scale_color_manual(values=wes_palette(n=2, name="BottleRocket1")) +
+    scale_color_manual(values=wes_palette(num_models, name = "Zissou1", type = "continuous")) +
     theme_minimal() +
     theme(axis.text=element_text(size = 9)) +
     labs(x = "Rank", y = expression(-log[10](p-value)), color = "Model") +
