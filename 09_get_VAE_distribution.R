@@ -1,9 +1,11 @@
+source("helper_functions.R")
+
 # Get distribution of clinical parameter p-values at finer granularity
 
 # Load encodings ----------------------
 
 vae_reps_path <- "results/replications"
-pca_path <- 'results/encodings/'
+pca_path <- 'results/encodings'
 
 vae_reps_files <-
   list.files(vae_reps_path,
@@ -54,7 +56,7 @@ top_performers_pca<-
     qm_df <- tibble(model = models,
                     dim = rep(dim, times = length(models)),
                     disease = rep("qm", times= length(models)),
-                    mins = qm_mins %>% unlist() )#%>% log10())
+                    mins = qm_mins %>% unlist() )
     
     aml_encoding <- 
       bind_rows(
@@ -85,7 +87,7 @@ top_performers_pca<-
     aml_df <- tibble(model = models, 
                      dim = rep(dim, times = length(models)),
                      disease = rep("aml", times= length(models)),
-                     mins = aml_mins %>% unlist() )#%>% log10())
+                     mins = aml_mins %>% unlist() )
     
     schizo_encoding <- 
       bind_rows(
@@ -116,7 +118,7 @@ top_performers_pca<-
     schizo_df <-tibble(model = models,
                        dim = rep(dim, times = length(models)),
                        disease = rep("schizo", times= length(models)),
-                       mins = schizo_mins %>% unlist() )#%>% log10())
+                       mins = schizo_mins %>% unlist() )
     
     bind_rows(qm_df, aml_df, schizo_df)
   }) %>% bind_rows()

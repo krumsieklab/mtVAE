@@ -57,9 +57,11 @@ if(!file.exists("results/reconstruction_scores.csv")) {
         str_subset(glue("{dim_idx}.csv")) %>%
         str_subset("test")
       
+      # Note: Need to use _PCA because just "PCA" will match the KPCA files as well as the target "PCA" file
+
       train_scores <-
         get_bootstrap_scores(train_recon_files %>% str_subset("VAE") %>% read_csv(),
-                             train_recon_files %>% str_subset("PCA") %>% read_csv(),
+                             train_recon_files %>% str_subset("_PCA") %>% read_csv(),
                              twins_train_data,
                              n_times = n_boot,
                              n_cores = n_cores) %>%
@@ -68,7 +70,7 @@ if(!file.exists("results/reconstruction_scores.csv")) {
       
       test_scores <-
         get_bootstrap_scores(test_recon_files %>% str_subset("VAE") %>% read_csv(),
-                             test_recon_files %>% str_subset("PCA") %>% read_csv(),
+                             test_recon_files %>% str_subset("_PCA") %>% read_csv(),
                              twins_test_data,
                              n_times = n_boot,
                              n_cores = n_cores) %>%
